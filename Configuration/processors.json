@@ -1,0 +1,74 @@
+{
+  "Processors": [
+    {
+      "Name": "EmailProcessor",
+      "InputTopic": "email_queue",
+      "OutputTopics": ["notification_queue"],
+      "ProcessorType": "EmailMessageProcessor",
+      "MaxConcurrency": 3,
+      "PollingIntervalSeconds": 10,
+      "AutoStart": true,
+      "CustomSettings": {
+        "EmailProvider": "SMTP",
+        "RetryAttempts": 3,
+        "TimeoutSeconds": 30
+      }
+    },
+    {
+      "Name": "DataProcessor",
+      "InputTopic": "data_queue",
+      "OutputTopics": ["analytics_queue", "reporting_queue"],
+      "ProcessorType": "DataMessageProcessor",
+      "MaxConcurrency": 5,
+      "PollingIntervalSeconds": 5,
+      "AutoStart": true,
+      "CustomSettings": {
+        "BatchSize": 100,
+        "CompressionEnabled": true,
+        "ValidationLevel": "Strict"
+      }
+    },
+    {
+      "Name": "NotificationProcessor",
+      "InputTopic": "notification_queue",
+      "OutputTopics": [],
+      "ProcessorType": "NotificationMessageProcessor",
+      "MaxConcurrency": 2,
+      "PollingIntervalSeconds": 15,
+      "AutoStart": false,
+      "CustomSettings": {
+        "Channels": ["Email", "SMS", "Push"],
+        "PriorityQueue": true,
+        "DeliveryTimeout": 60
+      }
+    },
+    {
+      "Name": "AnalyticsProcessor",
+      "InputTopic": "analytics_queue",
+      "OutputTopics": ["reporting_queue"],
+      "ProcessorType": "AnalyticsMessageProcessor",
+      "MaxConcurrency": 4,
+      "PollingIntervalSeconds": 8,
+      "AutoStart": true,
+      "CustomSettings": {
+        "AggregationWindow": 300,
+        "MetricsRetention": 7776000,
+        "RealTimeUpdates": true
+      }
+    },
+    {
+      "Name": "ReportingProcessor",
+      "InputTopic": "reporting_queue",
+      "OutputTopics": [],
+      "ProcessorType": "ReportingMessageProcessor",
+      "MaxConcurrency": 2,
+      "PollingIntervalSeconds": 20,
+      "AutoStart": true,
+      "CustomSettings": {
+        "ReportFormats": ["PDF", "Excel", "JSON"],
+        "ScheduledReports": true,
+        "StorageLocation": "/reports"
+      }
+    }
+  ]
+}

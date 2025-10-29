@@ -1,0 +1,790 @@
+@using Processors.Extensions
+@model IEnumerable<Processors.Models.ProcessorConfig>
+@{
+    ViewData["Title"] = "Processor Configuration Management";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --border-color: #dee2e6;
+            --card-bg: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #343a40;
+            --bg-secondary: #495057;
+            --text-primary: #ffffff;
+            --text-secondary: #adb5bd;
+            --border-color: #6c757d;
+            --card-bg: #212529;
+        }
+
+        .config-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.3s ease;
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .config-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        [data-theme="dark"] .config-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        
+        .auto-start-badge {
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        
+        .processor-start-mode {
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        
+        .topic-badge {
+            font-size: 0.7rem;
+            margin: 2px;
+        }
+        
+        .quick-action-btn {
+            min-width: 28px;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        [data-theme="dark"] .badge.bg-primary {
+            background-color: #4dabf7 !important;
+            color: #000 !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-info {
+            background-color: #20c997 !important;
+            color: #000 !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-success {
+            background-color: #28a745 !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-secondary {
+            background-color: #6c757d !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-warning {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+        }
+        
+        .json-viewer {
+            background-color: var(--bg-secondary);
+            border-radius: 0.375rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .config-header {
+            background-color: var(--bg-primary);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        [data-theme="dark"] .config-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        
+        .card-footer {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .text-muted {
+            color: var(--text-secondary) !important;
+        }
+        
+        [data-theme="dark"] .btn-outline-primary {
+            color: #4dabf7;
+            border-color: #4dabf7;
+        }
+        
+        [data-theme="dark"] .btn-outline-primary:hover {
+            background-color: #4dabf7;
+            border-color: #4dabf7;
+            color: #000;
+        }
+        
+        [data-theme="dark"] .btn-outline-info {
+            color: #20c997;
+            border-color: #20c997;
+        }
+        
+        [data-theme="dark"] .btn-outline-info:hover {
+            background-color: #20c997;
+            border-color: #20c997;
+            color: #000;
+        }
+        
+        [data-theme="dark"] .btn-outline-danger {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        [data-theme="dark"] .btn-outline-danger:hover {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        [data-theme="dark"] .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        
+        .dashboard-link-btn {
+            background-color: transparent;
+            border: 1px solid #007bff;
+            color: #007bff;
+        }
+        
+        [data-theme="dark"] .dashboard-link-btn {
+            border-color: #4dabf7;
+            color: #4dabf7;
+        }
+        
+        [data-theme="dark"] .dashboard-link-btn:hover {
+            background-color: #4dabf7;
+            border-color: #4dabf7;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="config-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="h2 mb-0">
+                            <i class="fas fa-cog"></i>
+                            Processor Configuration Management
+                        </h1>
+                        <div>
+                            <a href="/Dashboard" class="btn dashboard-link-btn me-2">
+                                <i class="fas fa-chart-line"></i>
+                                Dashboard
+                            </a>
+                            <button class="btn btn-success" onclick="createConfiguration()">
+                                <i class="fas fa-plus"></i>
+                                Add Configuration
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="reloadConfigurations()">
+                                <i class="fas fa-sync-alt"></i>
+                                Reload
+                            </button>
+                            <div class="btn-group ms-2">
+                                <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-bolt"></i>
+                                    Bulk Actions
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="startAllAutoStartProcessors()">
+                                        <i class="fas fa-play text-success"></i>
+                                        Start All Auto-Start
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="startAllManualProcessors()">
+                                        <i class="fas fa-play-circle text-warning"></i>
+                                        Start All Manual
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="stopAllProcessors()">
+                                        <i class="fas fa-stop text-danger"></i>
+                                        Stop All Processors
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row" id="config-grid">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var config in Model)
+                        {
+                            <div class="col-lg-6 col-xl-4 mb-4">
+                                <div class="card config-card h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">
+                                            <i class="fas fa-microchip"></i>
+                                            @config.Name
+                                        </h5>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            @if (config.AutoStart)
+                                            {
+                                                <span class="badge bg-success auto-start-badge">
+                                                    <i class="fas fa-play-circle"></i> Auto Start
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning auto-start-badge">
+                                                    <i class="fas fa-pause-circle"></i> Manual Start
+                                                </span>
+                                            }
+                                            
+                                            <!-- Quick action buttons -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-success btn-sm quick-action-btn" 
+                                                        onclick="quickStartProcessor('@config.Name')" 
+                                                        title="Start Processor">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-sm quick-action-btn" 
+                                                        onclick="quickStopProcessor('@config.Name')" 
+                                                        title="Stop Processor">
+                                                    <i class="fas fa-stop"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Processor Type:</label>
+                                            <div class="text-muted">@config.ProcessorType</div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Input Topic:</label>
+                                            <div>
+                                                <span class="badge bg-primary topic-badge">@config.InputTopic</span>
+                                            </div>
+                                        </div>
+                                        
+                                        @if (config.OutputTopics.Any())
+                                        {
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Output Topics:</label>
+                                                <div>
+                                                    @foreach (var topic in config.OutputTopics)
+                                                    {
+                                                        <span class="badge bg-info topic-badge">@topic</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                        
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label fw-bold">Concurrency:</label>
+                                                <div class="text-muted">@config.MaxConcurrency</div>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-bold">Poll Interval:</label>
+                                                <div class="text-muted">@config.PollingIntervalSeconds s</div>
+                                            </div>
+                                        </div>
+                                        
+                                        @if (config.CustomSettings.Any())
+                                        {
+                                            <div class="mt-3">
+                                                <label class="form-label fw-bold">Custom Settings:</label>
+                                                <div class="json-viewer">
+                                                    @foreach (var setting in config.CustomSettings)
+                                                    {
+                                                        <div>
+                                                            <strong>@setting.Key:</strong> @setting.Value.ToDisplayString()
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="card-footer">
+                                        <div class="btn-group w-100">
+                                            <button class="btn btn-outline-primary" onclick="editConfiguration('@config.Name')">
+                                                <i class="fas fa-edit"></i>
+                                                Edit
+                                            </button>
+                                            <button class="btn btn-outline-info" onclick="validateConfiguration('@config.Name')">
+                                                <i class="fas fa-check-circle"></i>
+                                                Validate
+                                            </button>
+                                            <button class="btn btn-outline-danger" onclick="deleteConfiguration('@config.Name')">
+                                                <i class="fas fa-trash"></i>
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-info text-center">
+                                <i class="fas fa-info-circle"></i>
+                                No processor configurations found. Click "Add Configuration" to create your first processor.
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div class="modal fade" id="configModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="configModalTitle">Edit Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="configForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="configName" class="form-label">Processor Name</label>
+                                    <input type="text" class="form-control" id="configName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="configType" class="form-label">Processor Type</label>
+                                    <input type="text" class="form-control" id="configType" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="inputTopic" class="form-label">Input Topic</label>
+                                    <input type="text" class="form-control" id="inputTopic" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="outputTopics" class="form-label">Output Topics (comma-separated)</label>
+                                    <input type="text" class="form-control" id="outputTopics">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="maxConcurrency" class="form-label">Max Concurrency</label>
+                                    <input type="number" class="form-control" id="maxConcurrency" min="1" value="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="pollingInterval" class="form-label">Polling Interval (seconds)</label>
+                                    <input type="number" class="form-control" id="pollingInterval" min="1" value="5" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="autoStart">
+                                        <label class="form-check-label" for="autoStart">
+                                            Auto Start
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="customSettings" class="form-label">Custom Settings (JSON)</label>
+                            <textarea class="form-control" id="customSettings" rows="4" placeholder='{"key": "value"}'></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveConfiguration()">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isEditMode = false;
+        let originalConfigName = '';
+
+        // Helper function to format custom settings values for display
+        function formatCustomSettingsValue(value) {
+            if (value === null || value === undefined) {
+                return 'null';
+            }
+            
+            if (Array.isArray(value)) {
+                return '[' + value.map(item => typeof item === 'string' ? `"${item}"` : item).join(', ') + ']';
+            }
+            
+            if (typeof value === 'object') {
+                try {
+                    return JSON.stringify(value);
+                } catch {
+                    return String(value);
+                }
+            }
+            
+            if (typeof value === 'string') {
+                return `"${value}"`;
+            }
+            
+            return String(value);
+        }
+
+        // Update custom settings display on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const jsonViewers = document.querySelectorAll('.json-viewer');
+            jsonViewers.forEach(viewer => {
+                const settings = viewer.querySelectorAll('div');
+                settings.forEach(setting => {
+                    const text = setting.textContent;
+                    if (text.includes('System.Object[]') || text.includes('System.')) {
+                        // This indicates an array or object that wasn't properly displayed
+                        // We'll leave the server-side fix to handle this
+                    }
+                });
+            });
+        });
+
+        function createConfiguration() {
+            isEditMode = false;
+            document.getElementById('configModalTitle').textContent = 'Create Configuration';
+            clearForm();
+            new bootstrap.Modal(document.getElementById('configModal')).show();
+        }
+
+        function editConfiguration(configName) {
+            isEditMode = true;
+            originalConfigName = configName;
+            document.getElementById('configModalTitle').textContent = 'Edit Configuration';
+            
+            fetch(`/api/configuration/${configName}`)
+                .then(response => response.json())
+                .then(config => {
+                    populateForm(config);
+                    new bootstrap.Modal(document.getElementById('configModal')).show();
+                })
+                .catch(error => {
+                    showNotification('Failed to load configuration', 'error');
+                });
+        }
+
+        function populateForm(config) {
+            document.getElementById('configName').value = config.name;
+            document.getElementById('configType').value = config.processorType;
+            document.getElementById('inputTopic').value = config.inputTopic;
+            document.getElementById('outputTopics').value = config.outputTopics.join(', ');
+            document.getElementById('maxConcurrency').value = config.maxConcurrency;
+            document.getElementById('pollingInterval').value = config.pollingIntervalSeconds;
+            document.getElementById('autoStart').checked = config.autoStart;
+            
+            // Properly serialize custom settings to preserve array values
+            const customSettingsJson = JSON.stringify(config.customSettings, null, 2);
+            document.getElementById('customSettings').value = customSettingsJson;
+        }
+
+        function clearForm() {
+            document.getElementById('configForm').reset();
+            document.getElementById('customSettings').value = '{}';
+        }
+
+        async function saveConfiguration() {
+            try {
+                const customSettingsText = document.getElementById('customSettings').value || '{}';
+                let customSettings;
+                
+                try {
+                    customSettings = JSON.parse(customSettingsText);
+                } catch (jsonError) {
+                    showNotification(`Invalid JSON in custom settings: ${jsonError.message}`, 'error');
+                    return;
+                }
+
+                const config = {
+                    name: document.getElementById('configName').value,
+                    processorType: document.getElementById('configType').value,
+                    inputTopic: document.getElementById('inputTopic').value,
+                    outputTopics: document.getElementById('outputTopics').value.split(',').map(t => t.trim()).filter(t => t),
+                    maxConcurrency: parseInt(document.getElementById('maxConcurrency').value),
+                    pollingIntervalSeconds: parseInt(document.getElementById('pollingInterval').value),
+                    autoStart: document.getElementById('autoStart').checked,
+                    customSettings: customSettings
+                };
+
+                const url = isEditMode ? `/api/configuration/${originalConfigName}` : '/api/configuration';
+                const method = isEditMode ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    showNotification(`Configuration ${isEditMode ? 'updated' : 'created'} successfully`, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('configModal')).hide();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const error = await response.text();
+                    showNotification(`Failed to save configuration: ${error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`Error saving configuration: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteConfiguration(configName) {
+            if (!confirm(`Are you sure you want to delete the configuration for '${configName}'?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/configuration/${configName}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Configuration deleted successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Failed to delete configuration', 'error');
+                }
+            } catch (error) {
+                showNotification('Error deleting configuration', 'error');
+            }
+        }
+
+        async function validateConfiguration(configName) {
+            try {
+                const response = await fetch(`/api/configuration/${configName}/validate`);
+                const result = await response.json();
+
+                if (result.isValid) {
+                    showNotification('Configuration is valid', 'success');
+                } else {
+                    showNotification(`Configuration errors: ${result.errors.join(', ')}`, 'error');
+                }
+            } catch (error) {
+                showNotification('Error validating configuration', 'error');
+            }
+        }
+
+        async function reloadConfigurations() {
+            try {
+                const response = await fetch('/api/configuration/force-reload', { method: 'POST' });
+                
+                if (response.ok) {
+                    showNotification('Configurations reloaded successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification('Failed to reload configurations', 'error');
+                }
+            } catch (error) {
+                showNotification('Error reloading configurations', 'error');
+            }
+        }
+
+        async function quickStartProcessor(processorName) {
+            try {
+                const response = await fetch(`/api/processors/${processorName}/start`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showNotification(`Processor ${processorName} started successfully`, 'success');
+                } else {
+                    const error = await response.text();
+                    showNotification(`Failed to start processor ${processorName}: ${error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`Error starting processor ${processorName}`, 'error');
+            }
+        }
+
+        async function quickStopProcessor(processorName) {
+            try {
+                const response = await fetch(`/api/processors/${processorName}/stop`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showNotification(`Processor ${processorName} stopped successfully`, 'success');
+                } else {
+                    const error = await response.text();
+                    showNotification(`Failed to stop processor ${processorName}: ${error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`Error stopping processor ${processorName}`, 'error');
+            }
+        }
+
+        async function startAllAutoStartProcessors() {
+            try {
+                const response = await fetch('/api/processors/start-all-auto-start', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showNotification('All auto-start processors have been started', 'success');
+                } else {
+                    const error = await response.text();
+                    showNotification(`Failed to start auto-start processors: ${error}`, 'error');
+                }
+            } catch (error) {
+                showNotification('Error starting auto-start processors', 'error');
+            }
+        }
+
+        async function startAllManualProcessors() {
+            try {
+                // Get all configurations
+                const configResponse = await fetch('/api/configuration');
+                if (!configResponse.ok) {
+                    throw new Error('Failed to get configurations');
+                }
+                
+                const configurations = await configResponse.json();
+                const manualProcessors = configurations.filter(config => !config.autoStart);
+                
+                if (manualProcessors.length === 0) {
+                    showNotification('No manual processors found', 'info');
+                    return;
+                }
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const processor of manualProcessors) {
+                    try {
+                        const response = await fetch(`/api/processors/${processor.name}/start`, {
+                            method: 'POST'
+                        });
+                        
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } catch {
+                        errorCount++;
+                    }
+                }
+                
+                if (errorCount === 0) {
+                    showNotification(`Successfully started ${successCount} manual processors`, 'success');
+                } else {
+                    showNotification(`Started ${successCount} processors, ${errorCount} failed`, 'warning');
+                }
+            } catch (error) {
+                showNotification('Error starting manual processors', 'error');
+            }
+        }
+
+        async function stopAllProcessors() {
+            if (!confirm('Are you sure you want to stop ALL processors? This will interrupt all message processing.')) {
+                return;
+            }
+            
+            try {
+                // Get all configurations
+                const configResponse = await fetch('/api/configuration');
+                if (!configResponse.ok) {
+                    throw new Error('Failed to get configurations');
+                }
+                
+                const configurations = await configResponse.json();
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const processor of configurations) {
+                    try {
+                        const response = await fetch(`/api/processors/${processor.name}/stop`, {
+                            method: 'POST'
+                        });
+                        
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } catch {
+                        errorCount++;
+                    }
+                }
+                
+                if (errorCount === 0) {
+                    showNotification(`Successfully stopped ${successCount} processors`, 'success');
+                } else {
+                    showNotification(`Stopped ${successCount} processors, ${errorCount} failed`, 'warning');
+                }
+            } catch (error) {
+                showNotification('Error stopping processors', 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' :
+                              type === 'info' ? 'alert-info' : 'alert-danger';
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+            notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
