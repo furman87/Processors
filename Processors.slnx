@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Processors.Core/Processors.Core.csproj" />
+    <Project Path="src/Processors.Dashboard/Processors.Dashboard.csproj" />
+    <Project Path="src/Processors.Worker/Processors.Worker.csproj" />
+  </Folder>
+</Solution>

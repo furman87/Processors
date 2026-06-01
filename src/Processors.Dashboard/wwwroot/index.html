@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Event Processor Dashboard</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2d3040;
+      --text:     #e2e8f0;
+      --muted:    #8892a4;
+      --accent:   #6366f1;
+      --green:    #22c55e;
+      --yellow:   #facc15;
+      --red:      #ef4444;
+      --blue:     #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 { font-size: 18px; font-weight: 600; color: var(--accent); }
+    header .meta { color: var(--muted); font-size: 12px; }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 24px; border-bottom: 1px solid var(--border);
+    }
+    .toolbar label { color: var(--muted); font-size: 12px; }
+    .toolbar select { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .refresh-btn {
+      margin-left: auto; background: var(--accent); color: #fff; border: none;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    .refresh-btn:hover { opacity: .85; }
+
+    main { padding: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+    }
+    .card-header .name { font-weight: 600; font-size: 15px; }
+    .card-header .topic { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .badge.Running  { background: #14532d33; color: var(--green); }
+    .badge.Stopped  { background: #1e293b;   color: var(--muted); }
+    .badge.Faulted  { background: #7f1d1d33; color: var(--red); }
+    .badge.Starting { background: #1e3a5f33; color: var(--blue); }
+    .badge.Stopping { background: #451a0333; color: var(--yellow); }
+    .badge.Offline  { background: #1e1e2e;   color: var(--muted); }
+
+    .card-body { padding: 14px 16px; }
+    .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .metric { }
+    .metric .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .metric .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .metric .value.lag-warn { color: var(--yellow); }
+    .metric .value.lag-crit { color: var(--red); }
+
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 10px 0 14px; overflow: hidden; }
+    .progress-bar .fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid var(--border); background: transparent; color: var(--text);
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .15s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.start { border-color: var(--green); color: var(--green); }
+    .btn.start:hover { background: #14532d33; }
+    .btn.stop  { border-color: var(--red);   color: var(--red); }
+    .btn.stop:hover  { background: #7f1d1d33; }
+    .btn.scale { border-color: var(--blue);  color: var(--blue); }
+    .btn.scale:hover { background: #1e3a5f33; }
+
+    .error-msg { font-size: 11px; color: var(--red); margin-top: 8px;
+      background: #7f1d1d22; border-radius: 4px; padding: 6px 10px; word-break: break-all; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 11px;
+      padding: 20px; border-top: 1px solid var(--border); }
+
+    .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 18px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ Event Processor Dashboard</h1>
+  </div>
+  <span class="meta" id="lastRefresh">Loading…</span>
+</header>
+
+<div class="toolbar">
+  <label for="refreshInterval">Auto-refresh:</label>
+  <select id="refreshInterval" onchange="setRefreshInterval(this.value)">
+    <option value="5000">5 s</option>
+    <option value="10000" selected>10 s</option>
+    <option value="30000">30 s</option>
+    <option value="0">Off</option>
+  </select>
+  <button class="refresh-btn" onclick="loadProcessors()">↻ Refresh</button>
+</div>
+
+<main>
+  <div id="content">
+    <div class="empty"><div class="spinner"></div><br/>Loading processors…</div>
+  </div>
+</main>
+
+<footer class="footer">PostgreSQL Event Log System · .NET 10</footer>
+<div id="toast"></div>
+
+<script>
+const API = '';  // same origin; change to http://hostname:5050 if cross-origin
+
+let refreshTimer = null;
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+
+async function loadProcessors() {
+  try {
+    const res = await fetch(`${API}/api/processors`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const processors = await res.json();
+    render(processors);
+    document.getElementById('lastRefresh').textContent =
+      'Last refreshed: ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      `<div class="empty" style="color:var(--red)">⚠ Failed to load: ${e.message}</div>`;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function render(processors) {
+  const el = document.getElementById('content');
+  if (!processors.length) {
+    el.innerHTML = '<div class="empty">No processors found. Are any workers running?</div>';
+    return;
+  }
+  el.innerHTML = `<div class="grid">${processors.map(card).join('')}</div>`;
+}
+
+function card(p) {
+  const state     = p.isOnline ? p.state : 'Offline';
+  const lag       = Number(p.lag) || 0;
+  const lagClass  = lag > 10000 ? 'lag-crit' : lag > 1000 ? 'lag-warn' : '';
+  const threadPct = p.maxThreads > 0 ? Math.round((p.activeThreads / p.maxThreads) * 100) : 0;
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="name">${esc(p.name)}</div>
+        <div class="topic">${esc(p.topic)}  ·  group: ${esc(p.consumerGroup)}</div>
+      </div>
+      <span class="badge ${state}">${state}</span>
+    </div>
+    <div class="card-body">
+      <div class="metrics">
+        <div class="metric">
+          <div class="label">Lag</div>
+          <div class="value ${lagClass}">${fmt(lag)}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Processed</div>
+          <div class="value">${fmt(p.eventsProcessed)}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Last Offset</div>
+          <div class="value" style="font-size:14px">${fmt(p.lastProcessedId)}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Errors</div>
+          <div class="value" style="${p.errorCount > 0 ? 'color:var(--red)' : ''}">${fmt(p.errorCount)}</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">
+        Threads: ${p.activeThreads} / ${p.maxThreads}
+      </div>
+      <div class="progress-bar">
+        <div class="fill" style="width:${threadPct}%"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn start" onclick="cmd('${esc(p.name)}','${esc(p.consumerGroup)}','start')">▶ Start</button>
+        <button class="btn stop"  onclick="cmd('${esc(p.name)}','${esc(p.consumerGroup)}','stop')">■ Stop</button>
+        <button class="btn scale" onclick="promptScale('${esc(p.name)}','${esc(p.consumerGroup)}')">⇅ Scale</button>
+        <button class="btn"       onclick="viewDeadLetter('${esc(p.name)}','${esc(p.consumerGroup)}')">💀 Dead-letter</button>
+      </div>
+
+      ${p.lastError ? `<div class="error-msg">⚠ ${esc(p.lastError)}</div>` : ''}
+
+      ${p.lastHeartbeat ? `<div style="font-size:10px;color:var(--muted);margin-top:8px;">
+        Heartbeat: ${new Date(p.lastHeartbeat).toLocaleTimeString()}
+        · Instance: ${esc((p.instanceId||'').substring(0,16))}…
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── Commands ─────────────────────────────────────────────────────────────────
+
+async function cmd(name, group, command, body) {
+  try {
+    const res = await fetch(`${API}/api/processors/${enc(name)}/${enc(group)}/${command}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    toast(`Command '${command}' issued for ${name}`);
+    setTimeout(loadProcessors, 1500);
+  } catch (e) {
+    toast(`Error: ${e.message}`, true);
+  }
+}
+
+function promptScale(name, group) {
+  const t = prompt(`Set max threads for "${name}":`, '4');
+  const n = parseInt(t, 10);
+  if (!isNaN(n) && n > 0) cmd(name, group, 'scale', { threads: n });
+}
+
+async function viewDeadLetter(name, group) {
+  try {
+    const res = await fetch(`${API}/api/processors/${enc(name)}/${enc(group)}/dead-letter`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const events = await res.json();
+    if (!events.length) { toast('No dead-letter events found.'); return; }
+
+    const rows = events.slice(0, 20).map(e =>
+      `[${new Date(e.failedAt).toLocaleString()}] EventId=${e.originalEventId} attempts=${e.attempts}\n  ${e.lastError}`
+    ).join('\n\n');
+
+    alert(`Dead-letter events for ${name} (showing up to 20):\n\n${rows}`);
+  } catch (e) {
+    toast(`Error: ${e.message}`, true);
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function enc(s) { return encodeURIComponent(s); }
+function fmt(n) { return Number(n).toLocaleString(); }
+
+function setRefreshInterval(ms) {
+  clearInterval(refreshTimer);
+  if (Number(ms) > 0) refreshTimer = setInterval(loadProcessors, Number(ms));
+}
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadProcessors();
+refreshTimer = setInterval(loadProcessors, 10000);
+</script>
+</body>
+</html>
